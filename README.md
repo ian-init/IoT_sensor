@@ -49,7 +49,5 @@ Join our community of developers creating universal apps.
 <img src='https://github.com/ian-init/IoT_sensor/blob/main/assets/images/Step1.UI_landling_page.png?raw=true'>
 - ESP connected to WiFi and actively publish MQTT message..
 <img src='https://github.com/ian-init/IoT_sensor/blob/main/assets/images/Step1.Flashed_ESP.png?raw=true'>
-
 - App subscribe to MQTT topic and render on the UI. 
-
-
+<img src='https://github.com/ian-init/IoT_sensor/blob/main/assets/images/Step3.React_reading_IoT.png?raw=true'>
