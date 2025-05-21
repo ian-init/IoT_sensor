@@ -1,4 +1,4 @@
-# Welcome to your Expo app 👋
+# Welcome to the Expo app for IoT sensor temperature, gas, and flame detection👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
