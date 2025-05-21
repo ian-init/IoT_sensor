@@ -44,4 +44,8 @@ Join our community of developers creating universal apps.
 - WebSocket protocol to flash ESP device with internet connectivity.
 - Subscribe to AWS IoT event and dynamically render on the UI.
 
+- View
+- Landing page
 <img src='https://github.com/ian-init/IoT_sensor/blob/main/assets/images/Step1.UI_landling_page.png?raw=true'>
+
+
