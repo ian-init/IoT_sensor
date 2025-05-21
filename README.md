@@ -41,5 +41,5 @@ Join our community of developers creating universal apps.
 
 ## Abut the App
 
-With Web A ESP32 development board device with sensors connecting to React Expo App
-
+- WebSocket protocol to flash ESP device with internet connectivity.
+- Subscribe to AWS IoT event and dynamically render on the UI.
