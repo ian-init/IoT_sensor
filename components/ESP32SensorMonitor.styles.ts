@@ -24,6 +24,20 @@ export default StyleSheet.create({
     marginRight: 10,
     textAlign:'center',
   },
+
+  subText: {
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingLeft: 20,
+    backgroundColor: '#e8e8e8',
+  },
+
+  errorText: {
+    fontSize: 24,
+    textAlign:'center',
+    backgroundColor: '#ffe6e6',
+    color: '#ff6666',
+  },
   input: {
     fontSize: 16,
     marginLeft: 20,
@@ -50,6 +64,22 @@ export default StyleSheet.create({
   dataContainer: {
     marginTop: 50,
   },
+
+  timestampContainer: {
+    backgroundColor: 'lightblue',
+  },
+
+  timestampText: {
+    fontSize: 16,
+    color: '#4d4dff',
+    marginTop: 10,
+    marginBottom: 10,
+    marginLeft: 30,
+    marginRight: 30,
+    textAlign:'center',
+  },
+
+
   dataRow: {
     flexDirection: 'row',
     justifyContent: 'center',

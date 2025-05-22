@@ -1,22 +1,9 @@
-import { AWSIoTProvider } from '@aws-amplify/pubsub'; // <— install via npm/yar
+import { AWSIoTProvider } from '@aws-amplify/pubsub';
 import { Amplify, PubSub } from 'aws-amplify';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Button, Text, TextInput, View } from 'react-native';
 
 import styles from './ESP32SensorMonitor.styles';
-
-// AWS IAM role
-Amplify.configure({
-  Auth: {
-    identityPoolId: 'us-east-1:28dc8ade-f3b2-41f9-b6d5-82254c3093c8',
-    region: 'us-east-1',
-  },
-});
-// Register the IoT “pluggable”
-Amplify.addPluggable(new AWSIoTProvider({
-  aws_pubsub_region: 'us-east-1',
-  aws_pubsub_endpoint: 'wss://a1gls53ytefhcl-ats.iot.us-east-1.amazonaws.com/mqtt'
-}));
 
 interface SensorData {
   temperature: number | null;
@@ -43,8 +30,9 @@ const ESP32SensorMonitor: React.FC = () => {
   const [appWifiSsid, setAppWifiSsid] = useState('');
   const [appPassword, setAppPassword] = useState('');
   const [wifiConnected, setWifiConnected] = useState(false);
-
-  // AWS IoT sensor data state
+  // AWS IoT sensor data endpoint and state
+  const [awsEndpoint, setAwsEndpoint] = useState('');
+  const [serialID, setSerialID] = useState('');
   const [dataLoaded, setDataLoaded] = useState(false);
   const [sensorData, setSensorData] = useState<SensorData>({
     temperature: null,
@@ -55,10 +43,10 @@ const ESP32SensorMonitor: React.FC = () => {
   });
   const [awsError, setAwsError] = useState(null);
   const [alertStatus, setAlertStatus] = useState(false);
+  const [lastFetch, setLastFetch] = useState<string>('');
 
   const ws = useRef<WebSocket | null>(null);
-
-  // Provisioning: send credentials to ESP AP
+  // Step 1: send credentials to ESP AP
   const connectWebSocket = useCallback(() => {    
     if (!espIp || !espSsid || !espPassword || !tempThre) {
       Alert.alert('Please enter connection IP, SSID, password and sensor alert.');
@@ -88,20 +76,39 @@ const ESP32SensorMonitor: React.FC = () => {
     };
   }, [espIp, espSsid, espPassword, tempThre]);
 
+  // Setp 2. connect to WiFi and AWS IoT endpoint
   const connectWifi = useCallback(() => {
-    if (!appWifiSsid || !appPassword) {
-      Alert.alert('Error', 'Please enter Wi-Fi SSID and password.');
+    if (!appWifiSsid || !appPassword || !awsEndpoint || !serialID) {
+      Alert.alert('Error', 'Please enter all the fields.');
       return;
     }
+    const endpoint = 'wss://' + awsEndpoint + 'ytefhcl-ats.iot.us-east-1.amazonaws.com/mqtt';
+    console.log('Endpoint:', endpoint);
+    Amplify.configure({
+      Auth: {
+        identityPoolId: 'us-east-1:28dc8ade-f3b2-41f9-b6d5-82254c3093c8',
+        region: 'us-east-1',
+      },
+    });
+    // Register the IoT “pluggable”
+    Amplify.addPluggable(new AWSIoTProvider({
+      aws_pubsub_region: 'us-east-1',
+      aws_pubsub_endpoint: endpoint
+    }));
+
     setWifiConnected(true);
-  }, [appWifiSsid, appPassword]);
+  }, [appWifiSsid, appPassword, awsEndpoint, serialID]);
 
   // get IoT reading from AWS once wifiConnected
   useEffect(() => {
     if (!wifiConnected) return;
-    const subscription = PubSub.subscribe('esp32/pub').subscribe({
+    const subscription = PubSub.subscribe(serialID).subscribe({
       next: (data) => {
-        console.log('MQTT msg:', data);
+
+        const timestamp = new Date().toLocaleString();
+        console.log('MQTT msg:', timestamp, data);
+        setLastFetch(timestamp);
+
         const payload = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
         setSensorData({
           temperature: payload.temperature,
@@ -111,7 +118,7 @@ const ESP32SensorMonitor: React.FC = () => {
           highTemperature: payload.tempAlert,
         });
         setAlertStatus(
-          payload.gasValue >= 1000 ||
+          payload.gasValue >= 400 ||
           payload.flameAlert == true ||
           payload.gasAlert == true ||
           payload.tempAlert == true
@@ -134,13 +141,12 @@ const ESP32SensorMonitor: React.FC = () => {
     <View style={styles.container}>
       <Text style={styles.title}>Home Fire Safety Monitor</Text>
 
-      {/* Flash ESP stage */}
       {!flashed && (
         <>
           <Text style={styles.statusText}>Step 1: Set up sensor and internet connection</Text>
           <TextInput
             style={styles.input}
-            placeholder="IP address shows on the device OLED"
+            placeholder="IP address shows on the device"
             value={espIp}
             onChangeText={setEspIp}
           />
@@ -175,10 +181,10 @@ const ESP32SensorMonitor: React.FC = () => {
         </>
       )}
 
-      {/* Wi-Fi stage*/}
       {flashed && !wifiConnected && (
         <>
           <Text style={styles.statusText}>Step 2: Connet App to WiFi</Text>
+          <Text style={styles.subText}>Connet App to WiFi</Text>
           <TextInput
             style={styles.input}
             placeholder="SSID"
@@ -192,6 +198,20 @@ const ESP32SensorMonitor: React.FC = () => {
             value={appPassword}
             onChangeText={setAppPassword}
           />
+          <Text style={styles.subText}>Link up your device, enter the following shows on the device</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="SerialID"
+            value={awsEndpoint}
+            onChangeText={setAwsEndpoint}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="DeviceID"
+            value={serialID}
+            onChangeText={setSerialID}
+          />
+
           <View style={styles.button}>
             <Button
               title="Connect to Wi-Fi"
@@ -201,7 +221,7 @@ const ESP32SensorMonitor: React.FC = () => {
         </>
       )}
 
-      {/* connect AWS IoT */}
+      {/* connecting stage */}
       {wifiConnected && !dataLoaded && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" />
@@ -209,12 +229,16 @@ const ESP32SensorMonitor: React.FC = () => {
         </View>
       )}
       {awsError && (
-        <Text style={styles.statusText}>Connection lost. Please reconnect. </Text>
+        <Text style={styles.errorText}>Connection fails. Please try again. </Text>
       )} 
       
-      {/* Show readings */}
+      {/* Step 3: subscribe data */}
       {wifiConnected && dataLoaded && !awsError && (
         <View style={styles.dataContainer}>
+          <View style={styles.timestampContainer}>         
+            <Text style={styles.timestampText}>Last update: {lastFetch}</Text>
+          </View>
+
           <View style={styles.dataRow}>
             <View style={styles.dataItem}>
               <Text style={styles.dataLabel}>Temperature:</Text>
